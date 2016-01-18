@@ -23,8 +23,8 @@ class DHT(object):
             if "r" in message and "nodes" in message["r"]:
                 nodes = decode_nodes(message["r"]["nodes"])
                 for node in nodes:
-                    print "Creating node for id: " + node[0] + " @ " + str(node[1])
                     found_node = Node(node[1], node_id=node[0])
+                    print "Created: " + str(found_node)
                     get_nodes_query = build_find_node_krpc_query(self._key, self._key)
                     self.krpc.send_query(get_nodes_query, found_node, print_nodes)
 
