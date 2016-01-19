@@ -22,11 +22,14 @@ def fucksake_why_isnt_this_std_lib_convert_eight_bit_string_to_number(string, ba
 class Node(object):
     NUMBER_OF_SECONDS_IN_15_MIN = 60 * 15
 
-    def __init__(self, address, node_id=None):
+    def __init__(self, address, node_id=None, long_id=None):
         self.address = address
         if node_id:
             self.id = node_id
+        if not long_id and node_id:
             self.long_id = fucksake_why_isnt_this_std_lib_convert_eight_bit_string_to_number(node_id, 256)
+        if long_id:
+            self.long_id = long_id
         self.time_seen = int(time.time())
 
     def is_good(self):
