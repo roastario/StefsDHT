@@ -1,4 +1,5 @@
 import math
+import time
 
 
 def fucksake_why_isnt_this_std_lib_convert_eight_bit_string_to_number(string, base):
@@ -19,11 +20,20 @@ def fucksake_why_isnt_this_std_lib_convert_eight_bit_string_to_number(string, ba
 
 
 class Node(object):
+    NUMBER_OF_SECONDS_IN_15_MIN = 60 * 15
+
     def __init__(self, address, node_id=None):
         self.address = address
         if node_id:
             self.id = node_id
             self.long_id = fucksake_why_isnt_this_std_lib_convert_eight_bit_string_to_number(node_id, 256)
+        self.time_seen = int(time.time())
+
+    def is_good(self):
+        return (time.time() - self.time_seen) < Node.NUMBER_OF_SECONDS_IN_15_MIN
+
+    def update_last_seen(self):
+        self.time_seen = int(time.time())
 
     def __repr__(self):
         return "Node " + str(self.id) + " @ " + str(self.address)
