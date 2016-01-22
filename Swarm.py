@@ -39,4 +39,4 @@ class Node(object):
         self.time_seen = int(time.time())
 
     def __repr__(self):
-        return "Node " + str(self.id) + " @ " + str(self.address)
+        return "Node " + str(self.long_id) + " @ " + str(self.address)

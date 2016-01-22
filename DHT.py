@@ -2,41 +2,50 @@ import logging
 import os
 import time
 
-from KRPC import KRPCServer, BOOTSTRAP_NODE, build_find_node_krpc_query
+from KRPC import KRPCServer, BOOTSTRAP_NODE, build_find_node_krpc_query, build_ping_krpc_query
+from RoutingTable import RoutingTable
 from Swarm import Node
 from bit_lib.bencode import decode_nodes
 
 
 class DHT(object):
-    def __init__(self, target_hash):
+    def __init__(self):
         # Session key
         self._key = os.urandom(20)  # 20 random bytes == 160 bits
         self.krpc = KRPCServer(9001, "1.1.1")
-        self.target_hash = target_hash
+        self.routing_table = RoutingTable()
 
-        pass
+    def ping_callback(self, message, connection):
+        if "r" in message and "id" in message["r"]:
+            message = message["r"]
+            node_to_add = Node(connection, node_id=message["id"])
+            self.routing_table.add_or_update_node(node_to_add)
 
-    def build_find_node_reponse_callback(self):
-
-        def print_nodes(message):
-            if "r" in message and "nodes" in message["r"]:
-                nodes = decode_nodes(message["r"]["nodes"])
-                for node in nodes:
-                    found_node = Node(node[1], node_id=node[0])
-                    print "Created: " + str(found_node)
-                    get_nodes_query = build_find_node_krpc_query(self._key, self._key)
-                    self.krpc.send_query(get_nodes_query, found_node, print_nodes)
-
-        return print_nodes
+    def find_node_callback(self, message, connection):
+        if "r" in message and "nodes" in message["r"]:
+            for node in decode_nodes(message["r"]["nodes"]):
+                found_node = Node(node[1], node_id=node[0])
+                self.krpc.send_query(build_ping_krpc_query(found_node.id), found_node, self.ping_callback)
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
-    dht = DHT("02b4c27f899425b67737cbec18eaedf1b9343d3b")
+    dht = DHT()
     dht.krpc.start()
-    query = build_find_node_krpc_query(dht._key, dht._key)
-    dht.krpc.send_query(query, BOOTSTRAP_NODE, dht.build_find_node_reponse_callback())
+    initial_ping_query = build_ping_krpc_query(dht._key)
+    dht.krpc.send_query(initial_ping_query, BOOTSTRAP_NODE, dht.ping_callback)
 
     while True:
-        time.sleep(1)
+        items = dht.routing_table.find_node_or_closest_nodes(dht._key)
+
+        for bucket in dht.routing_table.buckets:
+            print(str(bucket) + " : " + str(bucket.nodes))
+
+        if type(items) == Node:
+            print "found ourselves!"
+        else:
+            for node_to_ask in items:
+                self_discovery_query = build_find_node_krpc_query(dht._key, dht._key)
+                dht.krpc.send_query(self_discovery_query, node_to_ask, dht.find_node_callback)
+        time.sleep(5)

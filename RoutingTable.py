@@ -77,7 +77,6 @@ class Bucket(object):
         new_bucket_1 = Bucket(self.min_id, mid_point)
         new_bucket_2 = Bucket(mid_point + 1, self.max_id)
 
-        # print "split: " + str(self) + " into : " + str(new_bucket_1) +" and " + str(new_bucket_2)
         old_nodes = self.nodes
         self.nodes = []
 
@@ -138,7 +137,7 @@ class RoutingTable(object):
         if not found_bucket:
             # we did not find a bucket, something is very wrong
             # at any point there should be buckets covering the whole space
-            raise KeyError("Could not find a bucket for node_id: " + str(node_to_find.long_id))
+            print("Could not find a bucket for node_id: " + str(node_to_find.long_id))
 
         return search_result
 
@@ -150,4 +149,35 @@ class RoutingTable(object):
                                                                           0, len(self.buckets) - 1)
         closest_bucket = search_result[0]
         node = closest_bucket.find_node_in_bucket(node_to_find)
-        return node if node else closest_bucket.nodes
+
+        if node:
+            return node
+        else:
+            nodes_to_send = []
+            nodes_to_send.extend(closest_bucket.nodes)
+            idx_delta = 1
+            idx_to_check = search_result[1]
+            direction = -1
+            while len(nodes_to_send) < 8:
+                idx_to_check += idx_delta * direction
+
+                if 0 > idx_to_check and abs(idx_to_check) >= len(self.buckets):
+                    # we are entirely outside the range of interesting buckets with no hope of returning
+                    break
+
+                if idx_to_check < 0:
+                    # gone too far left
+                    idx_delta = abs(idx_delta)
+                    direction = 1
+                    pass
+                if idx_to_check >= len(self.buckets):
+                    # gone too far right
+                    idx_delta *= -1
+                    pass
+
+                if 0 < idx_to_check < len(self.buckets):
+                    nodes_to_send.extend(self.buckets[idx_to_check].nodes)
+                    idx_delta += 1
+                    direction *= -1
+
+        return nodes_to_send
