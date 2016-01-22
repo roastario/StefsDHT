@@ -28,7 +28,7 @@ class Node(object):
             self.id = node_id
         if not long_id and node_id:
             self.long_id = fucksake_why_isnt_this_std_lib_convert_eight_bit_string_to_number(node_id, 256)
-        if long_id:
+        if long_id or long_id == 0:
             self.long_id = long_id
         self.time_seen = int(time.time())
 

@@ -2,8 +2,7 @@ import logging
 import os
 import time
 
-from KRPC import KRPCServer, build_get_peers_krpc_query, BOOTSTRAP_NODE, build_ping_krpc_query, \
-    build_find_node_krpc_query
+from KRPC import KRPCServer, BOOTSTRAP_NODE, build_find_node_krpc_query
 from Swarm import Node
 from bit_lib.bencode import decode_nodes
 
@@ -17,7 +16,7 @@ class DHT(object):
 
         pass
 
-    def build_handle_get_peers_callback(self):
+    def build_find_node_reponse_callback(self):
 
         def print_nodes(message):
             if "r" in message and "nodes" in message["r"]:
@@ -37,7 +36,7 @@ if __name__ == "__main__":
     dht = DHT("02b4c27f899425b67737cbec18eaedf1b9343d3b")
     dht.krpc.start()
     query = build_find_node_krpc_query(dht._key, dht._key)
-    dht.krpc.send_query(query, BOOTSTRAP_NODE, dht.build_handle_get_peers_callback())
+    dht.krpc.send_query(query, BOOTSTRAP_NODE, dht.build_find_node_reponse_callback())
 
     while True:
         time.sleep(1)

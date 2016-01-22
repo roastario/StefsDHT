@@ -3,7 +3,6 @@ import os
 import socket
 import struct
 import threading
-
 import time
 
 from  Swarm import Node
@@ -43,9 +42,15 @@ class KRPCServer(object):
 
     def default_handler(self, message):
         if message["t"] in self._transactions:
-            self._transactions[message["t"]](message)
+            self._transactions[message["t"]][0](message)
         else:
             LOGGER.info("Received: " + str(message))
+
+        # do a little bit of house keeping
+        for _transaction_id in self._transactions.keys():
+            _transaction = self._transactions[_transaction_id]
+            if time.time() - _transaction[1] > 30:
+                del self._transactions[_transaction_id]
 
     def start(self):
         LOGGER.info("Starting KRPC Server")
@@ -87,5 +92,5 @@ class KRPCServer(object):
         query["v"] = self._version
         data = bencode(query)
         if callback:
-            self._transactions[transaction_id] = callback
+            self._transactions[transaction_id] = (callback, time.time())
         self.sock.sendto(data, target_node.address)

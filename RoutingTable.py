@@ -2,6 +2,8 @@ import math
 import random
 import string
 
+from Swarm import Node
+
 
 # bep_0005 specifies to use the XOR Metric (ie, the distance between two nodes is the XOR value of their ids)
 def _strxor(a, b):
@@ -92,6 +94,13 @@ class Bucket(object):
     def __repr__(self):
         return "bucket@" + self.bucket_id + " " + str(self.min_id) + "->" + str(self.max_id)
 
+    def find_node_in_bucket(self, node_to_find):
+        for node in self.nodes:
+            if node_to_find.long_id == node.long_id:
+                return node
+
+        return None
+
 
 class RoutingTable(object):
     MAX_NUMBER_OF_BUCKETS = int(pow(2, 16))
@@ -101,9 +110,14 @@ class RoutingTable(object):
     def __init__(self):
         self.buckets = [Bucket(RoutingTable.MIN_ID, RoutingTable.MAX_ID)]
 
-    def add_node(self, node_to_add):
+    def add_or_update_node(self, node_to_add):
         search_result = self.find_node_bucket(node_to_add)
         bucket = search_result[0]
+
+        found_node = bucket.find_node_in_bucket(node_to_add)
+
+        if found_node:
+            found_node.update_last_seen()
 
         if bucket.has_capacity():
             bucket.add_node(node_to_add)
@@ -112,6 +126,8 @@ class RoutingTable(object):
             idx_to_replace = search_result[1]
             self.buckets[idx_to_replace] = lower_half_bucket
             self.buckets.insert(idx_to_replace + 1, upper_half_bucket)
+
+        return found_node if found_node else node_to_add
 
     def find_node_bucket(self, node_to_find):
         search_result = fucksake_why_isnt_this_std_lib_search_sorted_list(self.buckets,
@@ -125,3 +141,13 @@ class RoutingTable(object):
             raise KeyError("Could not find a bucket for node_id: " + str(node_to_find.long_id))
 
         return search_result
+
+    def find_node_or_closest_nodes(self, node_id):
+        node_to_find = Node(None, node_id)
+        search_result = fucksake_why_isnt_this_std_lib_search_sorted_list(self.buckets,
+                                                                          Bucket.build_comparator_for_node(
+                                                                                  node_to_find.long_id),
+                                                                          0, len(self.buckets) - 1)
+        closest_bucket = search_result[0]
+        node = closest_bucket.find_node_in_bucket(node_to_find)
+        return node if node else closest_bucket.nodes
